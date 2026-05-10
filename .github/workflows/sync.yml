@@ -1,0 +1,154 @@
+name: Sync Image to Private Registry
+run-name: Image - ${{ inputs.image || github.event.head_commit.message }}
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Source images (comma-separated, e.g. docker.io/golang:1.26.2-bookworm)"
+        required: true
+        default: "docker.io/golang:1.26.2-bookworm"
+      type:
+        description: "Source images type: hierarchical,flat,qcr"
+        required: true
+        default: "hierarchical"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 解析输入
+        id: parse
+        shell: bash
+        run: |
+          set -e
+
+          echo "skip=false" >> $GITHUB_OUTPUT
+
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            msg="${{ github.event.head_commit.message }}"
+            echo "commit message: $msg"
+            msg="$(echo "$msg" | head -n 1)"
+
+            if [[ "$msg" =~ ^flat-sync:\ (.+)$ ]]; then
+              value="${BASH_REMATCH[1]}"
+              {
+                echo "value<<EOF"
+                echo "$value"
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+              echo "type=flat" >> $GITHUB_OUTPUT
+
+            elif [[ "$msg" =~ ^qcr-sync:\ (.+)$ ]]; then
+              value="${BASH_REMATCH[1]}"
+              {
+                echo "value<<EOF"
+                echo "$value"
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+              echo "type=qcr" >> $GITHUB_OUTPUT
+
+            elif [[ "$msg" =~ ^hi-sync:\ (.+)$ ]]; then
+              value="${BASH_REMATCH[1]}"
+              {
+                echo "value<<EOF"
+                echo "$value"
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+              echo "type=hi" >> $GITHUB_OUTPUT
+
+            else
+              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "type=xxx" >> $GITHUB_OUTPUT
+            fi
+
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            {
+              echo "value<<EOF"
+              echo "${{ inputs.image }}"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            if [ "${{ inputs.type }}" = "hierarchical" ]; then
+              echo "type=hi" >> $GITHUB_OUTPUT
+
+            elif [ "${{ inputs.type }}" = "qcr" ]; then
+              echo "type=qcr" >> $GITHUB_OUTPUT
+
+            elif [ "${{ inputs.type }}" = "flat" ]; then
+              echo "type=flat" >> $GITHUB_OUTPUT
+
+            else
+              echo "skip=true" >> $GITHUB_OUTPUT
+              echo "type=xxx" >> $GITHUB_OUTPUT
+            fi
+
+          fi
+
+      - name: 判断是否跳过
+        if: steps.parse.outputs.skip == 'true'
+        run: echo "不符合触发条件，跳过"
+
+      - name: 🚀 Sync Images
+        if: steps.parse.outputs.skip != 'true'
+        run: |
+          SRC="${{ steps.parse.outputs.value }}"
+          echo "镜像: $SRC"
+          echo
+          
+
+          if [ "${{ steps.parse.outputs.type }}" = "hi" ]; then
+            DEST="${{ secrets.HI_REGISTRY }}/base/${{ github.event.inputs.source_image }}"
+
+            echo "Starting sync: $SRC -> $DEST"
+
+            skopeo copy --all --src-tls-verify=true --dest-tls-verify=true \
+              --dest-creds "${{ secrets.HI_CREDS }}" \
+              "docker://$SRC" \
+              "docker://$DEST"
+
+          elif [ "${{ steps.parse.outputs.type }}" = "qcr" ]; then
+            TRIM_NAME="$(echo "${SRC}" | sed -E 's;/;_;g')"
+            if [[ "$SRC" =~ "ghcr.io/fluxcd/" ]]; then
+              TRIM_NAME="$(echo "${SRC#ghcr.io/fluxcd/}" | sed -E 's;/;_;g')"
+              DEST="${{ secrets.QCR_REGISTRY }}/osc-org/${TRIM_NAME}"
+
+            elif [[ "$SRC" =~ "factory.talos.dev/nocloud-installer/" ]]; then
+              TRIM_NAME="$(echo "${SRC#factory.talos.dev/nocloud-installer/}" | sed -E 's;/;_;g')"
+              DEST="${{ secrets.QCR_REGISTRY }}/nocloud-installer/${TRIM_NAME}"
+
+            elif [[ "$SRC" =~ "factory.talos.dev/metal-installer/" ]]; then
+              TRIM_NAME="$(echo "${SRC#factory.talos.dev/metal-installer/}" | sed -E 's;/;_;g')"
+              DEST="${{ secrets.QCR_REGISTRY }}/metal-installer/${TRIM_NAME}"
+
+            else
+              DEST="${{ secrets.QCR_REGISTRY }}/osc-org/${TRIM_NAME}"
+
+            fi
+            echo ">>> Syncing: $SRC -> $DEST"
+
+            skopeo copy --all --src-tls-verify=true --dest-tls-verify=true \
+              --dest-creds "${{ secrets.QCR_CREDS }}" \
+              "docker://$SRC" \
+              "docker://$DEST"
+
+          elif [ "${{ steps.parse.outputs.type }}" = "flat" ]; then
+            TRIM_NAME="$(echo "${SRC}" | sed -E 's;/;_;g')"
+            if [[ "$SRC" =~ "ghcr.io/fluxcd/" ]]; then
+              TRIM_NAME="$(echo "${SRC#ghcr.io/fluxcd/}" | sed -E 's;/;_;g')"
+            fi
+            DEST="${{ secrets.FLAT_REGISTRY }}/osc-org/${TRIM_NAME}"
+            echo ">>> Syncing: $SRC -> $DEST"
+
+            skopeo copy --all --src-tls-verify=true --dest-tls-verify=true \
+              --dest-creds "${{ secrets.FLAT_CREDS }}" \
+              "docker://$SRC" \
+              "docker://$DEST"
+          fi
+
+          echo ">>> Done: $SRC"
+
+      - name: ✅ Done
+        run: |
+          echo "Image synced successfully to Private Registry."
