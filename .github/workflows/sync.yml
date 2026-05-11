@@ -96,7 +96,11 @@ jobs:
           SRC="${{ steps.parse.outputs.value }}"
           echo "镜像: $SRC"
           echo
-          
+
+          if ! skopeo list-tags docker://${SRC%:*} | jq -r '.Tags[]' | grep -qx "^${SRC#*:}$"; then
+            echo "tag not exist"
+            exit 0
+          fi
 
           if [ "${{ steps.parse.outputs.type }}" = "hi" ]; then
             DEST="${{ secrets.HI_REGISTRY }}/base/${{ github.event.inputs.source_image }}"
