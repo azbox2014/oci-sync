@@ -103,7 +103,7 @@ jobs:
           fi
 
           if [ "${{ steps.parse.outputs.type }}" = "hi" ]; then
-            DEST="${{ secrets.HI_REGISTRY }}/base/${{ github.event.inputs.source_image }}"
+            DEST="${{ secrets.HI_REGISTRY }}/base/${SRC}"
 
             echo "Starting sync: $SRC -> $DEST"
 
