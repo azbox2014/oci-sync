@@ -97,10 +97,10 @@ jobs:
           echo "镜像: $SRC"
           echo
 
-          if ! skopeo list-tags docker://${SRC%:*} | jq -r '.Tags[]' | grep -qx "^${SRC#*:}$"; then
-            echo "tag not exist"
-            exit 0
-          fi
+          # if ! skopeo list-tags docker://${SRC%:*} | jq -r '.Tags[]' | grep -qx "^${SRC#*:}$"; then
+          #   echo "tag not exist"
+          #   exit 0
+          # fi
 
           if [ "${{ steps.parse.outputs.type }}" = "hi" ]; then
             DEST="${{ secrets.HI_REGISTRY }}/base/${SRC}"
@@ -138,11 +138,13 @@ jobs:
               "docker://$DEST"
 
           elif [ "${{ steps.parse.outputs.type }}" = "flat" ]; then
-            TRIM_NAME="$(echo "${SRC}" | sed -E 's;/;_;g')"
             if [[ "$SRC" =~ "ghcr.io/fluxcd/" ]]; then
               TRIM_NAME="$(echo "${SRC#ghcr.io/fluxcd/}" | sed -E 's;/;_;g')"
+              DEST="${{ secrets.FLAT_REGISTRY }}/fluxcd-org/${TRIM_NAME}"
+            else
+              TRIM_NAME="$(echo "${SRC}" | sed -E 's;/;_;g')"
+              DEST="${{ secrets.FLAT_REGISTRY }}/osc-org/${TRIM_NAME}"
             fi
-            DEST="${{ secrets.FLAT_REGISTRY }}/osc-org/${TRIM_NAME}"
             echo ">>> Syncing: $SRC -> $DEST"
 
             skopeo copy --all --src-tls-verify=true --dest-tls-verify=true \
