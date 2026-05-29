@@ -9,11 +9,17 @@ on:
       image:
         description: "Source images (comma-separated, e.g. docker.io/golang:1.26.2-bookworm)"
         required: true
+        type: string
         default: "docker.io/golang:1.26.2-bookworm"
       type:
         description: "Source images type: hierarchical,flat,qcr"
         required: true
+        type: choice
         default: "hierarchical"
+        options:
+         - hierarchical
+         - flat
+         - qcr
 
 jobs:
   sync:
