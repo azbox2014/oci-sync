@@ -107,7 +107,7 @@ jobs:
           #   echo "tag not exist"
           #   exit 0
           # fi
-
+          set -x
           if [ "${{ steps.parse.outputs.type }}" = "hi" ]; then
             DEST="${{ secrets.HI_REGISTRY }}/base/${SRC}"
 
