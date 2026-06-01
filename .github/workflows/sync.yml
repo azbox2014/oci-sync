@@ -102,6 +102,7 @@ jobs:
           SRC="${{ steps.parse.outputs.value }}"
           echo "镜像: $SRC"
           echo
+          skopeo --version
 
           # if ! skopeo list-tags docker://${SRC%:*} | jq -r '.Tags[]' | grep -qx "^${SRC#*:}$"; then
           #   echo "tag not exist"
