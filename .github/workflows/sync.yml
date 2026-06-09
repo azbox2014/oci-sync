@@ -29,7 +29,7 @@ jobs:
         id: parse
         shell: bash
         run: |
-          set -e
+          set -ex
 
           echo "skip=false" >> $GITHUB_OUTPUT
 
@@ -76,13 +76,13 @@ jobs:
               echo "${{ inputs.image }}"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
-            if [ "${{ inputs.type }}" = "hierarchical" ]; then
+            if [[ "${{ inputs.type }}" = "hierarchical" ]]; then
               echo "type=hi" >> $GITHUB_OUTPUT
 
-            elif [ "${{ inputs.type }}" = "qcr" ]; then
+            elif [[ "${{ inputs.type }}" = "qcr" ]]; then
               echo "type=qcr" >> $GITHUB_OUTPUT
 
-            elif [ "${{ inputs.type }}" = "flat" ]; then
+            elif [[ "${{ inputs.type }}" = "flat" ]]; then
               echo "type=flat" >> $GITHUB_OUTPUT
 
             else
@@ -92,12 +92,9 @@ jobs:
 
           fi
 
-      - name: 判断是否跳过
-        if: steps.parse.outputs.skip == 'true'
-        run: echo "不符合触发条件，跳过"
-
       - name: 🚀 Sync Images
         if: steps.parse.outputs.skip != 'true'
+        shell: bash
         run: |
           SRC="${{ steps.parse.outputs.value }}"
           echo "镜像: $SRC"
@@ -109,7 +106,7 @@ jobs:
           #   exit 0
           # fi
           set -x
-          if [ "${{ steps.parse.outputs.type }}" = "hi" ]; then
+          if [[ ${{ steps.parse.outputs.type }} = hi ]]; then
             DEST="${{ secrets.HI_REGISTRY }}/base/${SRC}"
 
             echo "Starting sync: $SRC -> $DEST"
@@ -119,17 +116,17 @@ jobs:
               "docker://$SRC" \
               "docker://$DEST"
 
-          elif [ "${{ steps.parse.outputs.type }}" = "qcr" ]; then
+          elif [[ ${{ steps.parse.outputs.type }} = qcr ]]; then
             TRIM_NAME="$(echo "${SRC}" | sed -E 's;/;_;g')"
-            if [[ "$SRC" =~ "ghcr.io/fluxcd/" ]]; then
+            if [[ $SRC =~ ghcr.io/fluxcd/ ]]; then
               TRIM_NAME="$(echo "${SRC#ghcr.io/fluxcd/}" | sed -E 's;/;_;g')"
               DEST="${{ secrets.QCR_REGISTRY }}/osc-org/${TRIM_NAME}"
 
-            elif [[ "$SRC" =~ "factory.talos.dev/nocloud-installer/" ]]; then
+            elif [[ $SRC =~ factory.talos.dev/nocloud-installer/ ]]; then
               TRIM_NAME="$(echo "${SRC#factory.talos.dev/nocloud-installer/}" | sed -E 's;/;_;g')"
               DEST="${{ secrets.QCR_REGISTRY }}/nocloud-installer/${TRIM_NAME}"
 
-            elif [[ "$SRC" =~ "factory.talos.dev/metal-installer/" ]]; then
+            elif [[ $SRC =~ factory.talos.dev/metal-installer/ ]]; then
               TRIM_NAME="$(echo "${SRC#factory.talos.dev/metal-installer/}" | sed -E 's;/;_;g')"
               DEST="${{ secrets.QCR_REGISTRY }}/metal-installer/${TRIM_NAME}"
 
@@ -144,8 +141,8 @@ jobs:
               "docker://$SRC" \
               "docker://$DEST"
 
-          elif [ "${{ steps.parse.outputs.type }}" = "flat" ]; then
-            if [[ "$SRC" =~ "ghcr.io/fluxcd/" ]]; then
+          elif [[ ${{ steps.parse.outputs.type }} = flat ]]; then
+            if [[ $SRC =~ ghcr.io/fluxcd/ ]]; then
               TRIM_NAME="$(echo "${SRC#ghcr.io/fluxcd/}" | sed -E 's;/;_;g')"
               DEST="${{ secrets.FLAT_REGISTRY }}/fluxcd-org/${TRIM_NAME}"
             else
@@ -161,7 +158,3 @@ jobs:
           fi
 
           echo ">>> Done: $SRC"
-
-      - name: ✅ Done
-        run: |
-          echo "Image synced successfully to Private Registry."
