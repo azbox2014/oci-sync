@@ -25,7 +25,10 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: 解析输入
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Parse input
         id: parse
         shell: bash
         run: |
@@ -94,6 +97,10 @@ jobs:
 
       - name: 🚀 Sync Images
         if: steps.parse.outputs.skip != 'true'
+        env:
+          HI_REGISTRY: ${{ secrets.HI_REGISTRY }}
+          QCR_REGISTRY: ${{ secrets.QCR_REGISTRY }}
+          FLAT_REGISTRY: ${{ secrets.FLAT_REGISTRY }}
         shell: bash
         run: |
           SRC="${{ steps.parse.outputs.value }}"
@@ -101,14 +108,10 @@ jobs:
           echo
           skopeo --version
 
-          # if ! skopeo list-tags docker://${SRC%:*} | jq -r '.Tags[]' | grep -qx "^${SRC#*:}$"; then
-          #   echo "tag not exist"
-          #   exit 0
-          # fi
+          . func.sh
           set -x
           if [[ ${{ steps.parse.outputs.type }} = hi ]]; then
-            DEST="${{ secrets.HI_REGISTRY }}/base/${SRC}"
-
+            DEST="$(transform_oci_image_url hi ${SRC})"
             echo "Starting sync: $SRC -> $DEST"
 
             skopeo copy --all --src-tls-verify=true --dest-tls-verify=true \
@@ -117,23 +120,7 @@ jobs:
               "docker://$DEST"
 
           elif [[ ${{ steps.parse.outputs.type }} = qcr ]]; then
-            TRIM_NAME="$(echo "${SRC}" | sed -E 's;/;_;g')"
-            if [[ $SRC =~ ghcr.io/fluxcd/ ]]; then
-              TRIM_NAME="$(echo "${SRC#ghcr.io/fluxcd/}" | sed -E 's;/;_;g')"
-              DEST="${{ secrets.QCR_REGISTRY }}/osc-org/${TRIM_NAME}"
-
-            elif [[ $SRC =~ factory.talos.dev/nocloud-installer/ ]]; then
-              TRIM_NAME="$(echo "${SRC#factory.talos.dev/nocloud-installer/}" | sed -E 's;/;_;g')"
-              DEST="${{ secrets.QCR_REGISTRY }}/nocloud-installer/${TRIM_NAME}"
-
-            elif [[ $SRC =~ factory.talos.dev/metal-installer/ ]]; then
-              TRIM_NAME="$(echo "${SRC#factory.talos.dev/metal-installer/}" | sed -E 's;/;_;g')"
-              DEST="${{ secrets.QCR_REGISTRY }}/metal-installer/${TRIM_NAME}"
-
-            else
-              DEST="${{ secrets.QCR_REGISTRY }}/osc-org/${TRIM_NAME}"
-
-            fi
+            DEST="$(transform_oci_image_url qcr ${SRC})"
             echo ">>> Syncing: $SRC -> $DEST"
 
             skopeo copy --all --src-tls-verify=true --dest-tls-verify=true \
@@ -142,13 +129,7 @@ jobs:
               "docker://$DEST"
 
           elif [[ ${{ steps.parse.outputs.type }} = flat ]]; then
-            if [[ $SRC =~ ghcr.io/fluxcd/ ]]; then
-              TRIM_NAME="$(echo "${SRC#ghcr.io/fluxcd/}" | sed -E 's;/;_;g')"
-              DEST="${{ secrets.FLAT_REGISTRY }}/fluxcd-org/${TRIM_NAME}"
-            else
-              TRIM_NAME="$(echo "${SRC}" | sed -E 's;/;_;g')"
-              DEST="${{ secrets.FLAT_REGISTRY }}/osc-org/${TRIM_NAME}"
-            fi
+            DEST="$(transform_oci_image_url flat ${SRC})"
             echo ">>> Syncing: $SRC -> $DEST"
 
             skopeo copy --all --src-tls-verify=true --dest-tls-verify=true \
