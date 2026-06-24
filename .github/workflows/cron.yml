@@ -1,5 +1,4 @@
-name: Sync Image to Private Registry
-run-name: Image - ${{ inputs.image || github.event.head_commit.message }}
+name: Cronjob for Sync Image
 
 on:
   workflow_dispatch:
