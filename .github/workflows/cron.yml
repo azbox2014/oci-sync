@@ -22,9 +22,11 @@ jobs:
 
           cat -n $0
           . func.sh
-          jq -c '.[]' image-list.json | while read line; do
-            SRC="$(echo $line | jq -r '.image')"
-            tagReg="$(echo $line | jq -r '.tagReg')"
+          len=$(jq '. | length' image-list.json)
+          for idx in {1..$((len-1))}; do
+          
+            SRC="$(jq -r '.['${idx}'].image' image-list.json)"
+            tagReg="$(jq -r '.['${idx}'].tagReg' image-list.json)"
 
             latest1=$(skopeo list-tags --creds ${{ secrets.QCR_CREDS }} docker://$(transform_oci_image_url flat ${SRC}) | grep -E "'"${tagReg}"'" | sort -Vr | head -n 1)
             latest2=$(skopeo list-tags docker://${SRC} | grep -E "'"${tagReg}"'" | sort -Vr | head -n 1)
