@@ -23,7 +23,7 @@ jobs:
           cat -n $0
           . func.sh
           len=$(jq '. | length' image-list.json)
-          for idx in {1..$((len-1))}; do
+          for idx in $(seq 0 $((len-1))); do
           
             SRC="$(jq -r '.['${idx}'].image' image-list.json)"
             tagReg="$(jq -r '.['${idx}'].tagReg' image-list.json)"
