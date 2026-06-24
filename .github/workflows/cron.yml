@@ -31,8 +31,8 @@ jobs:
           
             SRC="$(jq -r '.['${idx}'].image' image-list.json)"
             tagReg="$(jq -r '.['${idx}'].tagReg' image-list.json)"
-
-            latest1=$(skopeo list-tags --creds ${{ secrets.QCR_CREDS }} docker://$(transform_oci_image_url flat ${SRC}) | grep -E "'"${tagReg}"'" | sort -Vr | head -n 1)
+            
+            latest1=$(skopeo list-tags --creds ${{ secrets.HI_CREDS }} docker://$(transform_oci_image_url flat ${SRC}) | grep -E "'"${tagReg}"'" | sort -Vr | head -n 1)
             latest2=$(skopeo list-tags docker://${SRC} | grep -E "'"${tagReg}"'" | sort -Vr | head -n 1)
             echo ${latest1}
             echo ${latest2}
