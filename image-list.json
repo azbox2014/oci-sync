@@ -1,0 +1,10 @@
+[
+    {
+        "image": "docker.io/tailscale/tailscale:v0.0.0",
+        "tagReg": "v[0-9]+(\\.[0-9]+)"
+    },
+    {
+        "image": "docker.io/gitea/runner:0.0.0",
+        "tagReg": "[0-9]+(\\.[0-9]+)"
+    }
+]
