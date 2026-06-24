@@ -20,7 +20,7 @@ jobs:
         run: |
           set -ex
 
-          cat $0
+          cat -n $0
           . func.sh
           jq -c '.[]' image-list.json | while read line; do
             SRC="$(echo $line | jq -r '.image')"
