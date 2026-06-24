@@ -21,7 +21,7 @@ jobs:
           set -ex
 
           . func.sh
-          jq -c '.[]' image-list.txt | while read line; do
+          jq -c '.[]' image-list.json | while read line; do
             SRC="$(echo $line | jq -r '.image')"
             tagReg="$(echo $line | jq -r '.tagReg')"
 
