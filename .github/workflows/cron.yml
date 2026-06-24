@@ -16,6 +16,10 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Trigger list
+        env:
+          HI_REGISTRY: ${{ secrets.HI_REGISTRY }}
+          QCR_REGISTRY: ${{ secrets.QCR_REGISTRY }}
+          FLAT_REGISTRY: ${{ secrets.FLAT_REGISTRY }}
         shell: bash
         run: |
           set -ex
