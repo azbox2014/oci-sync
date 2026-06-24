@@ -32,7 +32,7 @@ jobs:
         id: parse
         shell: bash
         run: |
-          set -ex
+          set -x
 
           echo "skip=false" >> $GITHUB_OUTPUT
 
