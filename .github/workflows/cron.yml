@@ -26,7 +26,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          set -e
+          set -ex
 
           . func.sh
           len=$(jq '. | length' image-list.json)
@@ -39,10 +39,7 @@ jobs:
             latest1=$(skopeo list-tags --creds ${{ secrets.HI_CREDS }} docker://$(transform_oci_image_url ${syncType} ${SRC}) | jq -r '.Tags[]' | grep -E "${tagReg}" | sort -Vr | head -n 1)
             latest2=$(skopeo list-tags docker://${SRC} | jq -r '.Tags[]' | grep -E "${tagReg}" | sort -Vr | head -n 1)
 
-            # if [[ ${latest1} != ${latest2} ]]; then
-            set -x
-            if [[ ${latest1} == ${latest2} ]]; then
+            if [[ ${latest1} != ${latest2} ]]; then
               gh workflow run sync.yml -R ${GITHUB_REPOSITORY} --ref main -f image="${SRC}:${latest2}" -f "type=${syncType}"
             fi
-            set +x
           done
