@@ -32,9 +32,11 @@ jobs:
             SRC="$(jq -r '.['${idx}'].image' image-list.json)"
             tagReg="$(jq -r '.['${idx}'].tagReg' image-list.json)"
             
-            skopeo list-tags --creds ${{ secrets.HI_CREDS }} docker://$(transform_oci_image_url flat ${SRC}) | jq -r '.Tags[]' | grep -E "${tagReg}"
             latest1=$(skopeo list-tags --creds ${{ secrets.HI_CREDS }} docker://$(transform_oci_image_url flat ${SRC}) | jq -r '.Tags[]' | grep -E "${tagReg}" | sort -Vr | head -n 1)
             latest2=$(skopeo list-tags docker://${SRC} | jq -r '.Tags[]' | grep -E "${tagReg}" | sort -Vr | head -n 1)
-            echo ${latest1}
-            echo ${latest2}
+
+            # if [[ ${latest1} != ${latest2} ]]; then
+            if [[ ${latest1} == ${latest2} ]]; then
+              gh workflow run sync.yml -R ${GITHUB_REPOSITORY} --ref main -f image="${SRC}:${latest2}" -f "type=acr"
+            fi
           done
