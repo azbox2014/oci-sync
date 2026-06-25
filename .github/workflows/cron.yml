@@ -20,9 +20,10 @@ jobs:
           HI_REGISTRY: ${{ secrets.HI_REGISTRY }}
           QCR_REGISTRY: ${{ secrets.QCR_REGISTRY }}
           FLAT_REGISTRY: ${{ secrets.FLAT_REGISTRY }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          set -ex
+          set -e
 
           cat -n $0
           . func.sh
@@ -36,7 +37,9 @@ jobs:
             latest2=$(skopeo list-tags docker://${SRC} | jq -r '.Tags[]' | grep -E "${tagReg}" | sort -Vr | head -n 1)
 
             # if [[ ${latest1} != ${latest2} ]]; then
+            set -x
             if [[ ${latest1} == ${latest2} ]]; then
               gh workflow run sync.yml -R ${GITHUB_REPOSITORY} --ref main -f image="${SRC}:${latest2}" -f "type=acr"
             fi
+            set +x
           done
