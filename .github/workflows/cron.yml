@@ -40,6 +40,7 @@ jobs:
             latest2=$(skopeo list-tags docker://${SRC} | jq -r '.Tags[]' | grep -E "${tagReg}" | sort -Vr | head -n 1)
 
             if [[ ${latest1} != ${latest2} ]]; then
+              echo "Sync ${SRC}:${latest2}"
               gh workflow run sync.yml -R ${GITHUB_REPOSITORY} --ref main -f image="${SRC}:${latest2}" -f "type=${syncType}"
             fi
           done
