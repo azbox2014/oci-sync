@@ -32,15 +32,33 @@ jobs:
           len=$(jq '. | length' image-list.json)
           for idx in $(seq 0 $((len-1))); do
           
-            SRC="$(jq -r '.['${idx}'].image' image-list.json)"
-            tagReg="$(jq -r '.['${idx}'].tagReg' image-list.json)"
-            syncType="$(jq -r '.['${idx}'].type' image-list.json)"
+            image="$(jq -r '.['${idx}'].image' image-list.json)"
+            tag_reg="$(jq -r '.['${idx}'].tagReg' image-list.json)"
+            sync_type="$(jq -r '.['${idx}'].type' image-list.json)"
             
-            latest1=$(skopeo list-tags --creds ${{ secrets.HI_CREDS }} docker://$(transform_oci_image_url ${syncType} ${SRC}) | jq -r '.Tags[]' | grep -E "${tagReg}" | sort -Vr | head -n 1)
-            latest2=$(skopeo list-tags docker://${SRC} | jq -r '.Tags[]' | grep -E "${tagReg}" | sort -Vr | head -n 1)
+            latest1=$(skopeo list-tags --creds ${{ secrets.HI_CREDS }} docker://$(transform_oci_image_url ${sync_type} ${image}) | jq -r '.Tags[]' | grep -E "${tag_reg}" | sort -Vr | head -n 1)
+            latest_tag=$(skopeo list-tags docker://${image} | jq -r '.Tags[]' | grep -E "${tag_reg}" | sort -Vr | head -n 1)
 
-            if [[ ${latest1} != ${latest2} ]]; then
-              echo "Sync ${SRC}:${latest2}"
-              gh workflow run sync.yml -R ${GITHUB_REPOSITORY} --ref main -f image="${SRC}:${latest2}" -f "type=${syncType}"
+            if [[ ${latest1} != ${latest_tag} ]]; then
+              echo "Sync ${image}:${latest_tag}"
+
+              json_data=$(jq -n --arg image "${image}:${latest_tag}" --arg sync_type "${sync_type}" '
+            {
+              "ref": "main",
+                "inputs": {
+                  "image": $image,
+                  "type": $sync_type
+              }
+            }
+            ')
+              curl -sfS -X POST \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2026-03-10" \
+                -H "Content-Type: application/json" \
+                ${{ github.api_url }}/repos/${GITHUB_REPOSITORY}/actions/workflows/sync.yml/dispatches \
+                -d "$json_data"
+              
+              # gh workflow run sync.yml -R ${GITHUB_REPOSITORY} --ref main -f image="${image}:${latest_tag}" -f "type=${sync_type}"
             fi
           done
