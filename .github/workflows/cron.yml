@@ -42,26 +42,31 @@ jobs:
             if [[ ${latest1} != ${latest_tag} ]]; then
               echo "Sync ${image}:${latest_tag}"
 
-              json_data=$(jq -n --arg image "${image}:${latest_tag}" --arg sync_type "${sync_type}" '
-            {
-              "ref": "main",
-                "inputs": {
-                  "image": $image,
-                  "type": $sync_type
+              trigger_sync() {
+                json_data=$(jq -n --arg image "${1}" --arg sync_type "${2}" '
+              {
+                "ref": "main",
+                  "inputs": {
+                    "image": $image,
+                    "type": $sync_type
+                }
               }
-            }
-            ')
-              curl -sfS -X POST \
-                -H "Authorization: Bearer $GH_TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                -H "X-GitHub-Api-Version: 2026-03-10" \
-                -H "Content-Type: application/json" \
-                ${{ github.api_url }}/repos/${GITHUB_REPOSITORY}/actions/workflows/sync.yml/dispatches \
-                -d "$json_data"
+              ')
+                curl -sfS -X POST \
+                  -H "Authorization: Bearer $GH_TOKEN" \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "X-GitHub-Api-Version: 2026-03-10" \
+                  -H "Content-Type: application/json" \
+                  ${{ github.api_url }}/repos/${GITHUB_REPOSITORY}/actions/workflows/sync.yml/dispatches \
+                  -d "$json_data"
+              }
+
+              trigger_sync "${image}:${latest_tag}" "${sync_type}"
               
               # gh workflow run sync.yml -R ${GITHUB_REPOSITORY} --ref main -f image="${image}:${latest_tag}" -f "type=${sync_type}"
               if [[ "$(jq -r '.['${idx}'].latest' image-list.json)" == "true" ]]; then
-                gh workflow run sync.yml -R ${GITHUB_REPOSITORY} --ref main -f image="${image}" -f "type=${sync_type}"
+                trigger_sync "${image}" "${sync_type}"
+                # gh workflow run sync.yml -R ${GITHUB_REPOSITORY} --ref main -f image="${image}" -f "type=${sync_type}"
               fi
             fi
           done
