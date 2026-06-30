@@ -60,5 +60,8 @@ jobs:
                 -d "$json_data"
               
               # gh workflow run sync.yml -R ${GITHUB_REPOSITORY} --ref main -f image="${image}:${latest_tag}" -f "type=${sync_type}"
+              if [[ "$(jq -r '.['${idx}'].latest' image-list.json)" == "true" ]]; then
+                gh workflow run sync.yml -R ${GITHUB_REPOSITORY} --ref main -f image="${image}" -f "type=${sync_type}"
+              fi
             fi
           done
