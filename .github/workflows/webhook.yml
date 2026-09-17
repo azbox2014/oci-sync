@@ -76,7 +76,9 @@ jobs:
             sort -rV | head -n 1)
 
           ENABLE_BUILD=0
-          if [[ ${CURRENT_VERSION} != ${WEBHOOK_VERSION} ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ENABLE_BUILD=1
+          elif [[ ${CURRENT_VERSION} != ${WEBHOOK_VERSION} ]]; then
             ENABLE_BUILD=1
           fi
 
