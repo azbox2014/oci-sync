@@ -31,6 +31,7 @@ RUN apt update && apt install -y --no-install-recommends \
     dnsutils \
     iputils-ping \
     rclone \
+    ripgrep \
     build-essential \
     pkg-config libssl-dev \
     && rm -rf /var/lib/apt/lists/*
