@@ -29,6 +29,7 @@ RUN apt update && apt install -y --no-install-recommends \
     nfs-common \
     wireguard-tools \
     dnsutils \
+    file \
     iputils-ping \
     rclone \
     ripgrep \
