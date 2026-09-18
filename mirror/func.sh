@@ -39,6 +39,16 @@ transform_oci_image_url() {
 
     if [[ "$image" == docker.io/* ]]; then
       IMG="docker-io.allok.top/${image#docker.io/}"
+    elif [[ "$image" == ghcr.io/* ]]; then
+      IMG="docker-io.allok.top/${image#ghcr.io/}"
+    elif [[ "$image" == gcr.io/* ]]; then
+      IMG="docker-io.allok.top/${image#gcr.io/}"
+    elif [[ "$image" == quay.io/* ]]; then
+      IMG="docker-io.allok.top/${image#quay.io/}"
+    elif [[ "$image" == factory.talos.dev/* ]]; then
+      IMG="docker-io.allok.top/${image#factory.talos.dev/}"
+    elif [[ "$image" == registry.k8s.io/* ]]; then
+      IMG="docker-io.allok.top/${image#registry.k8s.io/}"
     elif [[ "$image" =~ ^acr.io ]]; then
       IMG="${FLAT_REGISTRY}/osc-org/${image#acr.io/}"
     elif [[ "$image" =~ ^qcr.io ]]; then
