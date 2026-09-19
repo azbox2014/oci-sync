@@ -12,12 +12,12 @@ on:
         type: string
         default: "docker.io/golang:1.26.2-bookworm"
       type:
-        description: "Source images type: hierarchical,flat,qcr"
+        description: "Source images type: hi,flat,qcr"
         required: true
         type: choice
-        default: "hierarchical"
+        default: "hi"
         options:
-         - hierarchical
+         - hi
          - flat
          - qcr
 
@@ -79,7 +79,7 @@ jobs:
               echo "${{ inputs.image }}"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
-            if [[ "${{ inputs.type }}" = "hierarchical" ]]; then
+            if [[ "${{ inputs.type }}" = "hi" ]]; then
               echo "type=hi" >> $GITHUB_OUTPUT
 
             elif [[ "${{ inputs.type }}" = "qcr" ]]; then
