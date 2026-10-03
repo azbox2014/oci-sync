@@ -81,5 +81,16 @@
         "tagReg": "^[0-9]+(\\.[0-9]+){2}$",
         "type": "hi",
         "latest": true
+    },
+    {
+        "image": "ghcr.io/home-assistant/home-assistant",
+        "tagReg": "^[0-9]+(\\.[0-9]+){2}$",
+        "type": "flat",
+        "latest": true
+    },
+    {
+        "image": "docker.io/eclipse-mosquitto",
+        "tagReg": "^[0-9]+(\\.[0-9]+){2}-alpine$",
+        "type": "flat"
     }
 ]

@@ -81,6 +81,7 @@ sync_flat_filtered() {
        "$MEDIA_TYPE" != "application/vnd.oci.image.index.v1+json" ]]; then
     echo "Not a manifest list, using normal copy"
     skopeo copy --all --src-tls-verify=true --dest-tls-verify=true \
+      --format v2s2 --dest-compress-format gzip \
       --dest-creds "$CREDS" "docker://$SRC" "docker://$DEST"
     return $?
   fi
@@ -97,6 +98,7 @@ sync_flat_filtered() {
   if [[ "$REMOVED" -eq 0 ]]; then
     echo "No attestation manifests found, using normal copy"
     skopeo copy --all --src-tls-verify=true --dest-tls-verify=true \
+      --format v2s2 --dest-compress-format gzip \
       --dest-creds "$CREDS" "docker://$SRC" "docker://$DEST"
     return $?
   fi
@@ -136,7 +138,9 @@ sync_flat_filtered() {
   fi
 
   echo "Step 3: Pushing filtered image..."
-  skopeo copy --all --dest-tls-verify=true --dest-creds "$CREDS" \
+  skopeo copy --all --dest-tls-verify=true \
+    --format v2s2 --dest-compress-format gzip \
+    --dest-creds "$CREDS" \
     "oci:${OCI_DIR}:sync" "docker://$DEST" || {
     echo "ERROR: Failed to push to destination"
     return 1
