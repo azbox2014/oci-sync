@@ -81,7 +81,7 @@ sync_flat_filtered() {
        "$MEDIA_TYPE" != "application/vnd.oci.image.index.v1+json" ]]; then
     echo "Not a manifest list, using normal copy"
     skopeo copy --all --src-tls-verify=true --dest-tls-verify=true \
-      --format v2s2 --dest-compress-format gzip \
+      --dest-compress-format gzip \
       --dest-creds "$CREDS" "docker://$SRC" "docker://$DEST"
     return $?
   fi
@@ -98,7 +98,7 @@ sync_flat_filtered() {
   if [[ "$REMOVED" -eq 0 ]]; then
     echo "No attestation manifests found, using normal copy"
     skopeo copy --all --src-tls-verify=true --dest-tls-verify=true \
-      --format v2s2 --dest-compress-format gzip \
+      --dest-compress-format gzip \
       --dest-creds "$CREDS" "docker://$SRC" "docker://$DEST"
     return $?
   fi
@@ -137,11 +137,21 @@ sync_flat_filtered() {
     return 1
   fi
 
-  echo "Step 3: Pushing filtered image..."
+  # zstd 层无法一步转成 docker v2s2（docker 媒体类型不表达 zstd，清单转换会被 skopeo 拒绝），
+  # 先在本地 OCI->OCI 重压缩为 gzip 层，再转 v2s2 推送——ACR 只认 docker/gzip 格式族
+  echo "Step 3: Recompressing layers to gzip (OCI -> OCI)..."
+  local OCI_GZ="${TMPDIR}/layout-gz"
+  skopeo copy --all --dest-compress-format gzip \
+    "oci:${OCI_DIR}:sync" "oci:${OCI_GZ}:sync" || {
+    echo "ERROR: Failed to recompress layers"
+    return 1
+  }
+
+  echo "Step 4: Pushing filtered image (docker v2s2)..."
   skopeo copy --all --dest-tls-verify=true \
-    --format v2s2 --dest-compress-format gzip \
+    --format v2s2 \
     --dest-creds "$CREDS" \
-    "oci:${OCI_DIR}:sync" "docker://$DEST" || {
+    "oci:${OCI_GZ}:sync" "docker://$DEST" || {
     echo "ERROR: Failed to push to destination"
     return 1
   }
