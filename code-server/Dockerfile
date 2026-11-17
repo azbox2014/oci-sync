@@ -175,9 +175,32 @@ RUN SOPS_VERSION=v3.12.2 && \
     chmod +x /usr/local/bin/sops
 
 # Oh My Zsh & 插件（放系统目录）
-RUN git clone https://gitcode.com/gh_mirrors/oh/ohmyzsh.git /opt/oh-my-zsh && \
-    git clone https://gitcode.com/GitHub_Trending/po/powerlevel10k.git /opt/oh-my-zsh/custom/themes/powerlevel10k && \
-    git clone https://gitcode.com/gh_mirrors/zs/zsh-autosuggestions.git /opt/oh-my-zsh/custom/plugins/zsh-autosuggestions
+# gitcode 对数据中心 IP 返回 418 反爬（GitHub Actions runner 必挂），故从 GitHub 克隆，
+# 克隆完成后把 origin 改指 gitcode 镜像，容器内后续 git pull 走国内源；
+# --depth 1 只取工作区文件（镜像内不做历史相关操作），大幅缩短传输、降低中断概率
+RUN set -eux; \
+    clone() { \
+        dest="$1"; src="$2"; mirror="$3"; \
+        ok=""; \
+        for i in 1 2 3; do \
+            rm -rf "$dest"; \
+            if git clone --depth 1 "$src" "$dest"; then ok=1; break; fi; \
+            echo "WARN: clone ${src} attempt ${i} failed, retrying..."; \
+            sleep 5; \
+        done; \
+        [ -n "$ok" ] || { echo "ERROR: clone failed: ${src}"; return 1; }; \
+        git -C "$dest" remote set-url origin "$mirror"; \
+        git -C "$dest" remote -v; \
+    }; \
+    clone /opt/oh-my-zsh \
+        https://github.com/ohmyzsh/ohmyzsh.git \
+        https://gitcode.com/gh_mirrors/oh/ohmyzsh.git; \
+    clone /opt/oh-my-zsh/custom/themes/powerlevel10k \
+        https://github.com/romkatv/powerlevel10k.git \
+        https://gitcode.com/GitHub_Trending/po/powerlevel10k.git; \
+    clone /opt/oh-my-zsh/custom/plugins/zsh-autosuggestions \
+        https://github.com/zsh-users/zsh-autosuggestions.git \
+        https://gitcode.com/gh_mirrors/zs/zsh-autosuggestions.git
 
 # 设置默认 shell
 RUN usermod -s /usr/bin/zsh abc
